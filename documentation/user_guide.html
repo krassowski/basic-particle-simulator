@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dokumentacja</title>
+<style type="text/css">
+body
+{
+	background: none repeat scroll 0% 0% #EFFFFE;
+	font-size: 14px;
+	text-align: center;
+	font-family: "Verdana","lucida grande","lucida sans unicode","Arial CE",arial,helvetica,sans-serif;
+	line-height: 140%;
+	width: 1000px;
+	margin: 10px auto;
+	box-shadow: 0px 0px 10px rgba(50, 50, 100, 0.3);
+}
+#container
+{
+	font-family: "Verdana","lucida grande","lucida sans unicode","Arial CE",arial,helvetica,sans-serif;
+	text-align: left;
+	overflow: hidden;
+	padding: 0px 10px 40px;
+	color: #000;
+	min-height: 300px;
+	vertical-align: top;
+	width: 978px;
+	text-align: left;
+	background: none repeat scroll 0% 0% #FFF;
+}
+</style>
+</head>
+<body>
+<div id="container">
+<h3>Axis</h3>
+
+let("axis", True)
+
+x is red
+y is green
+z is blue
+
+<h3>Signals</h3>
+
+TODO
+
+<h3>let operator</h3>
+
+let function allows you to set some simulation variables by putting into a console a text like:
+
+let(<variable_name>, <value>)
+
+for exmaple:
+
+let("speed", 2)
+
+will set the speed of simulation factor to 2.
+
+
+NOTE: After changing a value of variable during running simulation, you shall refresh simulation to see an effect!
+
+
+There are some predefined variables_names (if you set one of them, then the simulation engine work will be changed accordingly to the description bellow). Nonetheless you are not limited to use only theese variables - you can define your own (by simply calling "let") and then use this vairable by calling
+
+simulation.<variable_name>
+
+in your script.
+
+
+<h4>Predefined variables_names</h4>
+
+
+
+let("gravity", False)
+
+let("earth_gravity", False)
+
+let("step_size", 0.02)
+
+let("speed", 2)
+
+let("direction", direction)
+
+"backward" or "forward"
+
+
+let("axis", True)
+
+let("grid", True)
+</div>
+</body>
+</html>

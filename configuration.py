@@ -10,7 +10,7 @@ class Configuration():
 			return eval(self.register[option_name])
 		else:
 			print ("There is no option >> " + option_name + " <<")
-			return True
+			return False
 
 	def set(self, option_name, value):
 		self.register[option_name] = repr(value)

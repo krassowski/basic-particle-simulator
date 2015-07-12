@@ -148,13 +148,6 @@ def gtk_add_css_class(widget, class_name):
 def gtk_remove_css_class(widget, class_name):
 	widget.get_style_context().remove_class(class_name)
 
-# TODO: UNUSED
-def gtk_unexpose(widget):
-	gtk_remove_css_class(widget, "exposed")
-
-# TODO: UNUSED
-def gtk_make_expose(widget):
-	gtk_add_css_class(widget, "exposed")
 
 def gtk_add_css(css):
 	from gi.repository import Gdk
@@ -167,37 +160,6 @@ def gtk_add_css(css):
 		style_provider,
 		Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
 	)
-# TODO: UNUSED
-def gtk_expose(widget):
-
-	#  Initialize ...
-	css = """
-	.exposed
-	{
-		animation-duration: 0.70s;
-		animation-name: expose;
-		animation-iteration-count: infinite;
-		animation-direction: alternate;
-		animation-timing-function: ease;
-	}
-	@keyframes expose
-	{
-		from
-		{
-			color: #000;
-		}
-		to
-		{
-			color: #428bd7;
-		}
-	}
-	"""
-	gtk_add_css(css)
-
-	# ... only once
-	gtk_expose = gtk_make_expose
-	gtk_expose(widget)
-
 
 def get_folders(path, sort=False):
 	folders = os.listdir(path)

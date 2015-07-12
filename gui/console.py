@@ -383,12 +383,12 @@ class Console():
 			self.gui = Gtk.Table()
 
 
-			self.run_pause_button = misc.IconicButton("media-playback-start-symbolic", _("run simulation"))
-			end = misc.IconicButton("media-playback-stop-symbolic", _("end simulation"))
+			self.run_pause_button = misc.IconicButton("media-playback-start-symbolic", _("Run simulation"))
+			end = misc.IconicButton("media-playback-stop-symbolic", _("End simulation"))
 
-			step_forward = misc.IconicButton("media-seek-forward-symbolic", _("step forward"))
-			step_backward = misc.IconicButton("media-seek-backward-symbolic", _("step backward"))
-			help_me = misc.IconicButton("system-help-symbolic", _("help"))
+			step_forward = misc.IconicButton("media-seek-forward-symbolic", _("Step forward"))
+			step_backward = misc.IconicButton("media-seek-backward-symbolic", _("Step backward"))
+			help_me = misc.IconicButton("system-help-symbolic", _("Help"))
 
 			self.run_pause_button.connect("clicked", self.run_pause)
 			end.connect("clicked", self.end)
@@ -416,11 +416,11 @@ class Console():
 
 			if self.simulation.running:
 				button.set_image(misc.get_icon_image("media-playback-start-symbolic"))
-				button.set_tooltip_text(_("run simulation"))
+				button.set_tooltip_text(_("Run simulation"))
 				self.simulation.pause()
 			else:
 				button.set_image(misc.get_icon_image("media-playback-pause-symbolic"))
-				button.set_tooltip_text(_("pause simulation"))
+				button.set_tooltip_text(_("Pause simulation"))
 				self.simulation.run()
 		# The optional argument's ("waste") are there to allow passing additional data from GUI calls
 		# (GTK always want to give us a reference to calling object in callback - take look above) but we really
@@ -431,5 +431,5 @@ class Console():
 
 		def end(self, waste=''):
 			self.run_pause_button.set_image(misc.get_icon_image("media-playback-start-symbolic"))
-			self.run_pause_button.set_tooltip_text(_("run simulation"))
+			self.run_pause_button.set_tooltip_text(_("Run simulation"))
 			self.simulation.end()

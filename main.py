@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# TODO: REMOVE IT BEFORE PUBLICATION
+# Allows to keep directory clean
+# (in my opinion better than adding .gitignore with ".pyc")
 import sys
 sys.dont_write_bytecode = True
-# END OF TODO
 
 from internationalize import _
 from configuration import Configuration
@@ -44,11 +44,12 @@ def main():
 	if gtk_version < 3.16:
 		main_window.show_tip(_("You have an old GTK+ version. If you want to improve an apperance of this application, please upgrade GTK+ to 3.16 version."))
 
-
+	### FPS COUNTER CODE, part I:
 	# from simulator.timer import Timer
 	# fps = Timer(main_simulation, mode="real_time")
-	#main_simulation.speed = 1
+	# main_simulation.speed = 1
 	# fps_list = [1] * 50
+	###
 
 
 	while main_window.is_open:
@@ -68,10 +69,12 @@ def main():
 		# That signal is connected to our rendering function (thanks to Window.view_area subclass)
 		main_window.main_iteration()
 
+		### FPS COUNTER CODE, part II:
 		#fps.tick()
 		#fps_list.append(fps.time_delta)
 		#fps_list.pop(0)
 		#print 1.0 / (sum(fps_list) / 50.0)
+		###
 
 	return True
 

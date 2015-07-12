@@ -1,7 +1,7 @@
 from gi.repository import Gtk
 from gi.repository import Gio
 from gi.repository import Gdk
-from internationalize import _
+from internationalize import _, is_english_off
 import miscellaneous as misc
 import windows
 
@@ -20,11 +20,10 @@ class OptionBrowser():
 				"load_from_file": self.load_from_file,
 				"save_as": self.save_as,
 				"save": self.save,
-				#"add_one_ball": self.add_one_ball,
-				#"add_many_balls": self.add_many_balls,
 				"show_tips": window.toggle_tips,
 				"prompt_on_exit": window.toggle_prompt,
-				"do_not_use_header_bar": window.toggle_header_bar
+				"do_not_use_header_bar": window.toggle_header_bar,
+				"polish_version": window.toggle_polish_version
 			}
 
 		self.let_actions = [
@@ -40,6 +39,7 @@ class OptionBrowser():
 				("show_tips", "self.window.config.show_tips"),
 				("prompt_on_exit", "self.window.config.prompt_on_exit"),
 				("do_not_use_header_bar", "self.window.config.do_not_use_header_bar"),
+				("polish_version", "is_english_off()"),
 			]
 
 		for option_name in self.let_actions:
@@ -54,31 +54,6 @@ class OptionBrowser():
 		self.gui.add(self.browser.gui)
 
 		self.gui.set_size_request(200, 400)
-
-	#def add_one_ball(self, x=None, y=None, z=None):
-	#	proper_parameters = x and y	and z
-	#	if proper_parameters:
-	#		pass
-	#		self.window.console.script.insert('object', 'Ball', x, y, z, into="on_load")
-	#		# add ball on x,y
-	#	else:
-	#		pass
-	#		"""
-	#		albo: podczas klikniecia wyrenderuj plaszczyzne ortogonalna do
-	#		wkektora widoku posiatkowana w kolorowe wzory obliczone z macierzy
-	#		wykonaj color-picking i jezeli pamietasz koordynaty plaszczyzny - w
-	#		praktyce krance kwadratu imitujacego plaszczyzne - mozesz odtworzyc
-	#		koordynaty tego kwadrackia ktory zostal klikniety i wstawic kulke
-	#		w jego srodku. Problemem bedzie jednak adjustment w osi "od eye"
-	#		- jezeli bedziemy przesuwac plaszczyzne beda to spore straty w dokladnosci
-	#		"""
-	#		# call settings window with some deflaut values
-	#		# and remember handle to it in some "global" (class) variable
-	#		# and there should be "pick_on" and it will call me.
-	#		# gtk_widget_translate_coordinates(somewidget, gtk_widget_get_toplevel(somewidget), 0, 0, &wx, &wy)
-	#		self.add_one_ball(1,1,1)
-	#def add_many_balls(self):
-	#	pass
 
 	def back(self, to_where):
 		self._path = self._path[:self._path.index(to_where)+1]

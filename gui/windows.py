@@ -70,6 +70,16 @@ class MainWindow(Gtk.Window):
 		if old != self.config.prompt_on_exit:
 			self.config.save_to_file()
 
+	def toggle_polish_version(self, switch='', gparam=''):
+		old = self.config.language
+		lang = "ENG"
+		if switch.get_active():
+			lang = "PL"
+	 	self.config.set("language", lang)
+		if old != lang:
+			self.config.save_to_file()
+			self.show_tip(_("The language will be changed after you restart the program"))
+
 	def toggle_option_browser(self, switch='', gparam=''):
 
 		if switch:
@@ -136,7 +146,7 @@ class MainWindow(Gtk.Window):
 				container.pack_end(what, 0, 0, 0)
 
 
-		view_text = Gtk.Label(_("view:"))
+		view_text = Gtk.Label(_("View:"))
 		misc.gtk_set_margin(view_text, left=5)
 
 		pack_start(view_text)
@@ -160,16 +170,16 @@ class MainWindow(Gtk.Window):
 		self.revealer_more_buttons.set_transition_duration(500)
 		self.revealer_more_buttons.set_transition_type(Gtk.RevealerTransitionType.SLIDE_RIGHT)
 
-		self.more_buttons = misc.IconicButton("go-previous-symbolic", _("show more buttons"))
+		self.more_buttons = misc.IconicButton("go-previous-symbolic", _("Show more buttons"))
 		self.more_buttons.set_relief(Gtk.ReliefStyle.NONE)
 		self.more_buttons.connect("clicked", self.reveal_more_buttons)
 
-		self.full_screen_button = misc.IconicButton("view-fullscreen-symbolic", _("toggle fullscreen"))
+		self.full_screen_button = misc.IconicButton("view-fullscreen-symbolic", _("Toggle fullscreen"))
 		self.full_screen_button.set_relief(Gtk.ReliefStyle.NONE)
 		self.full_screen_button.connect("clicked", self.toggle_full_screen)
 		misc.gtk_set_margin(self.full_screen_button, left=8, right=3)
 
-		self.switch_label = Gtk.Label(_("option browser:"))
+		self.switch_label = Gtk.Label(_("Option browser: "))
 		self.switch = Gtk.Switch()
 		self.switch.connect("notify::active", self.toggle_option_browser)
 		self.switch.set_active(True)
@@ -221,7 +231,6 @@ class MainWindow(Gtk.Window):
 		else:
 			model = combo.get_model()
 			mode = model[it][0]
-			#print("Switching to mode %s" % mode)
 
 			self.view_area.set_mode(mode)
 
@@ -262,7 +271,7 @@ class MainWindow(Gtk.Window):
 		self.view_area = ViewArea(self.default_view, self.event_handler)
 
 		# Title and header bar
-		title = _("Physics simulator")
+		title = _("Basic Particle Simulator")
 		self.set_title(title)
 		self.set_wmclass(title, title)
 
@@ -272,7 +281,7 @@ class MainWindow(Gtk.Window):
 		self.infobar_label = Gtk.Label()
 		self.infobar.get_content_area().add(self.infobar_label)
 		self.infobar_label.show()
-		self.infobar.add_button(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
+		self.infobar.add_button(_("Close"), Gtk.ResponseType.CLOSE)
 		self.infobar.set_default_response(Gtk.ResponseType.CLOSE)
 		self.infobar.connect("response", self.infobar_response)
 
@@ -281,8 +290,6 @@ class MainWindow(Gtk.Window):
 		if self.config.do_not_use_header_bar:
 
 			self.top_bar = Gtk.Box()
-			#self.toolbar.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
-			#self.toolbar.get_style_context().add_class("inline-toolbar")
 			self.top_bar.get_style_context().add_class("primary-toolbar")
 			self.top_layout.add(self.top_bar)
 

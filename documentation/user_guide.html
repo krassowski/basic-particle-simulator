@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dokumentacja</title>
+<title>Help page for basic particle simulator</title>
 <style type="text/css">
 body
 {
@@ -32,22 +32,31 @@ body
 <body>
 <div id="container">
 <h3>Axis</h3>
-
+<pre>
 let("axis", True)
 
 x is red
 y is green
 z is blue
-
+</pre>
 <h3>Signals</h3>
+<pre>
+Available signals:
 
-TODO
+on_load
+on_start
+on_pause
+on_end
+on_collision
+on_simulate
+</pre>
 
-<h3>let operator</h3>
+<h3>Let operator</h3>
 
+<pre>
 let function allows you to set some simulation variables by putting into a console a text like:
 
-let(<variable_name>, <value>)
+let(variable_name, value)
 
 for exmaple:
 
@@ -61,13 +70,13 @@ NOTE: After changing a value of variable during running simulation, you shall re
 
 There are some predefined variables_names (if you set one of them, then the simulation engine work will be changed accordingly to the description bellow). Nonetheless you are not limited to use only theese variables - you can define your own (by simply calling "let") and then use this vairable by calling
 
-simulation.<variable_name>
+simulation.variable_name
 
 in your script.
 
-
+</pre>
 <h4>Predefined variables_names</h4>
-
+<pre>
 
 
 let("gravity", False)
@@ -86,6 +95,7 @@ let("direction", direction)
 let("axis", True)
 
 let("grid", True)
+</pre>
 </div>
 </body>
 </html>

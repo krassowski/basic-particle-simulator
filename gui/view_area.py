@@ -26,40 +26,40 @@ class ViewArea():
 		# TODO: move it to file (json or repr)
 		camera_data = [
 			{
-				"name": "3d view",
+				"name": "3D View",
 				"eye": Vector3(0, 0, 2),
 				"perspective": True,
 				"angle": Vector3(30, -45, 0)
 			},
 			{
-				"name": "top projection",
+				"name": "Top projection",
 				"eye": Vector3(0, 1, 0),
 				"up": Vector3(0, 0, -1),
 				"perspective": False
 			},
 			{
-				"name": "bottom projection",
+				"name": "Bottom projection",
 				"eye": Vector3(0, -1, 0),
 				"up": Vector3(0, 0, 1),
 				"perspective": False
 			},
 			{
-				"name": "front projection",
+				"name": "Front projection",
 				"eye": Vector3(0, 0, 1),
 				"perspective": False
 			},
 			{
-				"name": "back projection",
+				"name": "Back projection",
 				"eye": Vector3(0, 0, -1),
 				"perspective": False
 			},
 			{
-				"name": "left projection",
+				"name": "Left projection",
 				"eye": Vector3(-1, 0, 0),
 				"perspective": False
 			},
 			{
-				"name": "right projection",
+				"name": "Right projection",
 				"eye": Vector3(1, 0, 0),
 				"perspective": False
 			}
@@ -74,10 +74,10 @@ class ViewArea():
 
 		self.views = []
 
-		self.views.append(self.View(self, "3d view"))
-		self.views.append(self.View(self, "front projection"))
-		self.views.append(self.View(self, "left projection"))
-		self.views.append(self.View(self, "top projection"))
+		self.views.append(self.View(self, "3D View"))
+		self.views.append(self.View(self, "Front projection"))
+		self.views.append(self.View(self, "Left projection"))
+		self.views.append(self.View(self, "Top projection"))
 
 		self.gui = Gtk.Table()
 
@@ -274,8 +274,8 @@ class ViewArea():
 			self.scale.set_icons(["edit-find-symbolic"])
 			self.scale.connect("value-changed", self.set_scale)
 			self.scale.set_tooltip_text(_("Adjust zoom of camera"))
-			self.scale.get_plus_button().set_tooltip_text(_("zoom in"))
-			self.scale.get_minus_button().set_tooltip_text(_("zoom out"))
+			self.scale.get_plus_button().set_tooltip_text(_("Zoom in"))
+			self.scale.get_minus_button().set_tooltip_text(_("Zoom out"))
 
 			manipulating_toggler = Gtk.MenuButton()
 			manipulating_toggler.set_relief(Gtk.ReliefStyle.NONE)

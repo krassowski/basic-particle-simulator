@@ -1,454 +1,351 @@
-from vector import *
 import math
 import sys
 import traceback
 
 from constants import Constants
-from timer import Timer
 from signals import Signals
+import sim_objects
+from timer import Timer
+from vector import V, Vector3
 from sound import Sound
 
-const = Constants("simulator/constants.ini")
 
-class Object():
+const = Constants('simulator/constants.ini')
 
-	def __init__(self,  x=0, y=0, z=0, mass=1):
-		self.position = V(x, y, z)
-		self.color = V(1, 1, 0.6)
-		self.scale = V()
-		self.mass = float(mass)
-		self.radius = 1
 
-		# forces with constant "generator"
-		self.constant_forces = []
+_active_objects = []
 
-		# there will be short-living forces
-		self.momentary_forces = []
 
-		# parameter necessary to mask poor precision of simulation
-		self.time_unused = 0
-		self.velocity = Vector3()
-		self.delta_velocity = Vector3()
+class Simulation:
 
-	def get_resultant_force(self):
-		return reduce(lambda x, y: x + y, self.constant_forces + self.momentary_forces, V())
+    running = False
+    paused = False
+    script = ''
+    mode = 'stop'
 
-	def poke(self, force):
-		self.momentary_forces.append(force)
+    objects = []
+    walls = []
+    register = {}
+    signals = Signals()
 
-	def push(self, force):
-		self.constant_forces.append(force)
+    # y = -9.8, because the up vector is (x=0,y=1,z=0) and this acceleration works downwards
+    gravity_of_earth = Vector3(y=-9.8)
 
-	def clear_momentary_forces(self):
+    gravitational_constant = 6.67 * 10**(-11)
 
-		for force in self.momentary_forces:
-			del force
+    def __init__(self):
+        self.timer = Timer(self)
 
-		self.momentary_forces = []
+    def __getattr__(self, attribute):
+        try:
+            return self.get(attribute)
+        except KeyError:
+            return
+            # raise AttributeError
 
+    def get_direction(self):
+        if not self.direction:
+            return 'forward'
+        return self.direction
 
-class Simulation():
+    def get(self, attribute):
+        return self.register[attribute]
 
-	running = False
-	paused = False
-	script = ""
-	mode = "stop"
+    def let(self, variable, value):
+        self.register[variable] = value
 
-	def __init__(self):
-		self.timer = Timer(self)
+    def move_object(self, obj):
+        time_delta = self.timer.time_delta
 
-	objects = []
-	walls = []
-	register = {}
-	signals = Signals()
+        time_delta += obj.time_unused
+        obj.time_unused = 0
 
-	# y = -9.8, because the up vector is (x=0,y=1,z=0) and this acceleration works downwards
-	gravity_of_earth = Vector3(y=-9.8)
+        # 0. if there is an earth gravity, add it:
+        if self.earth_gravity:
+            # F = gm
+            gravity_force = self.gravity_of_earth * obj.mass
 
-	gravitational_constant = 6.67 * 10**(-11)
+            obj.poke(gravity_force)
 
-	def __getattr__(self, attribute):
-		return self.get(attribute)
+        # 1. Calculate resultant force
 
-	def get_direction(self):
-		if not self.direction:
-			return "forward"
-		return self.direction
+        # 2. Move it!
 
-	def get(self, attribute):
-		if attribute in self.register:
-			return self.register[attribute]
-		else:
-			return False
+        # F = am
+        # a = F / m
+        #   a = Delta v / t
+        # Delta v / t = F / m
+        # Delta v = F / m * t
 
-	def let(self, variable, value):
-		self.register[variable] = value
+        delta_velocity = obj.get_resultant_force() / obj.mass * time_delta
 
-	def create_ball(self, *args, **kwargs):
-		ball = self.Ball(*args, **kwargs)
-		self.objects.append(ball)
-		return ball
+        obj.delta_velocity = delta_velocity
+        obj.velocity += delta_velocity
 
-	def create_wall(self, *args, **kwargs):
- 		wall = self.Wall(*args, **kwargs)
-		self.walls.append(wall)
-		return wall
+        obj.position += obj.velocity * time_delta
 
-	def create_box(self, size, mass_of_wall=1000, position=None, movable=True):
+        obj.clear_momentary_forces()
 
- 		if not position:
-			position = V(0,0,0)
+    def physics(self):
 
-		self.create_wall(x=position.x + size, mass=mass_of_wall, movable=movable)
-		self.create_wall(x=position.x - size, mass=mass_of_wall, movable=movable)
-		self.create_wall(y=position.y + size, mass=mass_of_wall, movable=movable)
-		self.create_wall(y=position.y - size, mass=mass_of_wall, movable=movable)
-		self.create_wall(z=position.z + size, mass=mass_of_wall, movable=movable)
-		self.create_wall(z=position.z - size, mass=mass_of_wall, movable=movable)
+        global _active_objects
 
-	def move_object(self, obj):
-		time_delta = self.timer.time_delta
+        # 1. Find interactions
 
-		time_delta += obj.time_unused
-		obj.time_unused = 0
+        # 1.1 wall - ball
+        for wall in self.walls:
 
-		# 0. if there is an earth gravity, add it:
-		if self.earth_gravity:
-			# F = gm
-			gravity_force = self.gravity_of_earth * obj.mass
+            for obj in self.objects:
 
-			obj.poke(gravity_force)
+                if wall.collision_with_ball(obj.position, obj.radius):
 
-		# 1. Calculate resultant force
+                    obj.position -= obj.velocity * self.timer.previous_time_delta
 
-		# 2. Move it!
+                    time_unused = self.timer.previous_time_delta
 
-		# F = am
-		# a = F / m
-		#   a = Delta v / t
-		# Delta v / t = F / m
-		# Delta v = F / m * t
+                    if wall.movable:
+                        obj.velocity, wall.velocity = (obj.velocity * (obj.mass - wall.mass) + 2 * wall.mass * wall.velocity) / (obj.mass + wall.mass), (wall.velocity * (wall.mass - obj.mass) + 2 * obj.mass * obj.velocity) / (obj.mass + wall.mass)
+                    else:
+                        obj.velocity = -obj.velocity
 
-		delta_velocity = obj.get_resultant_force() / obj.mass * time_delta
+                    for o in _active_objects:
+                        _active_objects.remove(o)
+                    _active_objects.extend([obj, wall])
 
-		obj.delta_velocity = delta_velocity
-		obj.velocity += delta_velocity
+                    self.signals.emit('on_collision')
 
-		obj.position += obj.velocity * time_delta
+        #map(self.move_object, self.walls)
 
-		obj.clear_momentary_forces()
+        # 1.2 ball - ball
+        for i, obj_1 in enumerate(self.objects):
 
-	def physics(self):
+            # check obj_1 against others
 
-		global active_objects
+            for obj_2 in self.objects[len(self.objects)/2+i:]:
 
-		# 1. Find interactions
+                displacement = obj_1.position - obj_2.position
+                radius_sum = obj_1.radius + obj_2.radius
 
-		# 1.1 wall - ball
-		for wall in self.walls:
+                distance = displacement.length()
 
-			for obj in self.objects:
+                if distance <= radius_sum:
+                    # So in collision checker we named two states as a collision:
+                    #   - when objects are side by side (==)
+                    #   - when objects are overlapping themselves (<)
 
-				if wall.collision_with_ball(obj.position, obj.radius):
+                    # In reality the second state is not called only collision but rather sth like 'collapse'.
+                    # To avoid situation where object which is overlapped on another only by lack of precision in our
+                    # simulation (then this object might fly throughout another one - really amusing) we need to detect
+                    # that state and prevent it.
 
-					obj.position -= obj.velocity * self.timer.previous_time_delta
+                    # I think, we need to keep last movement vector to be able to 'move object back' to position where
+                    # should be this collision.
 
-					time_unused = self.timer.previous_time_delta
+                    # to nie rozwiaze w calosci problemu bo zawsze moze cos przeleciec
+                    # jesli bedzie sie zbyt szybko poruszac (za maly krok symulacji)
 
-					if wall.movable:
-						obj.velocity, wall.velocity = (obj.velocity * (obj.mass - wall.mass) + 2 * wall.mass * wall.velocity) / (obj.mass + wall.mass), (wall.velocity * (wall.mass - obj.mass) + 2 * obj.mass * obj.velocity) / (obj.mass + wall.mass)
-					else:
-						obj.velocity = -obj.velocity
+                    time_unused = 0
 
-					active_objects = [obj, wall]
+                    #cofnij i sporboj wymodelowac dokladnie jesli juz po ptakach
+                    if distance < radius_sum:
 
-					self.signals.emit("on_collision")
+                        # 1.Do zderzenia doszlo teraz, nie bylo go w poprzednim kroku;
+                        # moge cofnac sie stanu sprzed zderzenia znajac poprzednia predkosc i poprzedni delta t
 
-		#map(self.move_object, self.walls)
+                        obj_1.position -= obj_1.velocity * self.timer.previous_time_delta
+                        obj_2.position -= obj_2.velocity * self.timer.previous_time_delta
 
-		# 1.2 ball - ball
-		for i, obj_1 in enumerate(self.objects):
+                        displacement = obj_1.position - obj_2.position
+                        distance = displacement.length()
 
-			# check obj_1 against others
 
-			for obj_2 in self.objects[len(self.objects)/2+i:]:
+                        # ttc - time to collision
+                        # vX - velocity of X
+                        # pX - position of X in the last step befor collision
+                        # rX - radius of X
 
-				displacement = obj_1.position - obj_2.position
-				radius_sum = obj_1.radius + obj_2.radius
+                        # condition of collision is:
 
-				distance = displacement.length()
+                        # p1 + v1 * ttc + r1 = p2 + v2 * ttc + r2
+                        # p1 - p2 + r1 - r2 = v2 * ttc - v1 * ttc
+                        # p1 - p2 - (r1 + r2) = ttc (v2 - v1)
+                        # [p1 - p2 - (r1 + r2)] / (v2 - v1) = ttc
+                        # ttc = [distance - radius_sum] / (v2 - v1)
+                        # ttc = [distance - radius_sum] / (velocity_diff)
 
-				if distance <= radius_sum:
-					# So in collision checker we named two states as a collision:
-					#   - when objects are side by side (==)
-					#   - when objects are overlapping themselves (<)
+                        velocity_diff = (obj_2.velocity - obj_1.velocity).length()
 
-					# In reality the second state is not called only collision but rather sth like "collapse".
-					# To avoid situation where object which is overlapped on another only by lack of precision in our
-					# simulation (then this object might fly throughout another one - really amusing) we need to detect
-					# that state and prevent it.
+                        # don't divide by zero
+                        if not (velocity_diff == 0):
 
-					# I think, we need to keep last movement vector to be able to "move object back" to position where
-					# should be this collision.
+                            time_to_collision = (distance - radius_sum) / velocity_diff
 
-					# to nie rozwiaze w calosci problemu bo zawsze moze cos przeleciec
-					# jesli bedzie sie zbyt szybko poruszac (za maly krok symulacji)
+                            if time_to_collision < 0:
+                                time_to_collision = 0
 
-					time_unused = 0
+                            # mam: czas do kolizji, polozenia, predkosci. warunek spotkania: pos1 = pos2
+                            # p1s = p2s
+                            # p1 + d p1 = p2 + d p2
+                            # d p1 = v1 * ttc
+                            # d p2 = v2 * ttc
 
-					#cofnij i sporboj wymodelowac dokladnie jesli juz po ptakach
-					if distance < radius_sum:
+                            # * 0.99, to avoid next machine-precise setbacks
+                            obj_1.position += obj_1.velocity * time_to_collision * 0.99
+                            obj_2.position += obj_2.velocity * time_to_collision * 0.99
 
-						# 1.Do zderzenia doszlo teraz, nie bylo go w poprzednim kroku;
-						# moge cofnac sie stanu sprzed zderzenia znajac poprzednia predkosc i poprzedni delta t
+                            time_unused = self.timer.previous_time_delta - time_to_collision
 
-						obj_1.position -= obj_1.velocity * self.timer.previous_time_delta
-						obj_2.position -= obj_2.velocity * self.timer.previous_time_delta
+                            obj_1.time_unused = time_unused
+                            obj_2.time_unused = time_unused
 
-						displacement = obj_1.position - obj_2.position
-						distance = displacement.length()
+                        obj_1.velocity -= obj_1.delta_velocity
+                        obj_2.velocity -= obj_2.delta_velocity
 
+                    # masy rowne
+                    #obj_1.velocity, obj_2.velocity = obj_2.velocity, obj_1.velocity
+                    # masy nie rowne
+                    obj_1.velocity, obj_2.velocity = (obj_1.velocity * (obj_1.mass - obj_2.mass) + 2 * obj_2.mass * obj_2.velocity) / (obj_1.mass + obj_2.mass), (obj_2.velocity * (obj_2.mass - obj_1.mass) + 2 * obj_1.mass * obj_1.velocity) / (obj_1.mass + obj_2.mass)
 
-						# ttc - time to collision
-						# vX - velocity of X
-						# pX - position of X in the last step befor collision
-						# rX - radius of X
+                    for o in _active_objects:
+                        _active_objects.remove(o)
+                    _active_objects.extend([obj_1, obj_2])
 
-						# condition of collision is:
+                    self.signals.emit('on_collision')
 
-						# p1 + v1 * ttc + r1 = p2 + v2 * ttc + r2
-						# p1 - p2 + r1 - r2 = v2 * ttc - v1 * ttc
-						# p1 - p2 - (r1 + r2) = ttc (v2 - v1)
-						# [p1 - p2 - (r1 + r2)] / (v2 - v1) = ttc
-						# ttc = [distance - radius_sum] / (v2 - v1)
-						# ttc = [distance - radius_sum] / (velocity_diff)
+                # if there is an active gravity (between objects), add it:
+                if self.gravity:
+                    # F = versor(r) * G m1 m2 / (r^2)
 
-						velocity_diff = (obj_2.velocity - obj_1.velocity).length()
+                    r = obj_1.position - obj_2.position
 
-						# don't divide by zero
-						if not (velocity_diff == 0):
+                    # gravity_force = r.normalized() * self.gravitational_constant * obj_1.mass * obj_2.mass / (r.length()**2)
 
-							time_to_collision = (distance - radius_sum) / velocity_diff
+                    r_squared_length = r.length_squared()
 
-							if time_to_collision < 0:
-								time_to_collision = 0
+                    gravity_force = (r / math.sqrt(r_squared_length)) * self.gravitational_constant * obj_1.mass * obj_2.mass / r_squared_length
 
-							# mam: czas do kolizji, polozenia, predkosci. warunek spotkania: pos1 = pos2
-							# p1s = p2s
-							# p1 + d p1 = p2 + d p2
-							# d p1 = v1 * ttc
-							# d p2 = v2 * ttc
+                    obj_1.poke(-gravity_force)
+                    obj_2.poke(gravity_force)
 
-							# * 0.99, to avoid next machine-precise setbacks
-							obj_1.position += obj_1.velocity * time_to_collision * 0.99
-							obj_2.position += obj_2.velocity * time_to_collision * 0.99
+        # 3. Move every object:
+        map(self.move_object, self.objects)
 
-							time_unused = self.timer.previous_time_delta - time_to_collision
+    def simulate(self):
 
-							obj_1.time_unused = time_unused
-							obj_2.time_unused = time_unused
+        if self.timer.mode == 'stop':
+            return True
 
+        self.timer.tick()
+        self.physics()
+        self.signals.emit('on_simulate')
 
-						obj_1.velocity -= obj_1.delta_velocity
-						obj_2.velocity -= obj_2.delta_velocity
+    def make_a_single_step(self, direction):
 
-					# masy rowne
-					#obj_1.velocity, obj_2.velocity = obj_2.velocity, obj_1.velocity
-					# masy nie rowne
-					obj_1.velocity, obj_2.velocity = (obj_1.velocity * (obj_1.mass - obj_2.mass) + 2 * obj_2.mass * obj_2.velocity) / (obj_1.mass + obj_2.mass), (obj_2.velocity * (obj_2.mass - obj_1.mass) + 2 * obj_1.mass * obj_1.velocity) / (obj_1.mass + obj_2.mass)
+        if self.step_size:
+            self.timer.step_size = self.step_size
 
-					active_objects = [obj_1, obj_2]
+        self.timer.set_mode('step_by_step', direction)
+        self.simulate()
+        self.timer.set_mode(self.mode, self.get_direction())
 
-					self.signals.emit("on_collision")
+    def step_forward(self, waste=''):
+        self.make_a_single_step('forward')
 
+    def step_backward(self, waste=''):
+        self.make_a_single_step('backward')
 
-				# if there is an active gravity (between objects), add it:
-				if self.gravity:
-					# F = versor(r) * G m1 m2 / (r^2)
+    def expose(self):
+        from random import uniform as rand
 
-					r = obj_1.position - obj_2.position
+        exposed = {
+            'const': const,
+            'V': Vector3,
+            'Vector3': Vector3,
+            'Sound': Sound,
+            'active_objects': _active_objects,
+            'let': self.let,
+            'Force': Vector3,
+            'Ball': sim_objects.Ball,
+            'Wall': sim_objects.Wall,
+            'Box': sim_objects.Box,
+            'WallBox': sim_objects.WallBox,
+            'simulation': self,
+            'rand': rand
+        }
 
-					# gravity_force = r.normalized() * self.gravitational_constant * obj_1.mass * obj_2.mass / (r.length()**2)
+        for signal in self.signals.names:
+            exposed[signal] = None
 
-					r_squared_length = r.length_squared()
+        return exposed
 
-					gravity_force = (r / math.sqrt(r_squared_length)) * self.gravitational_constant * obj_1.mass * obj_2.mass / r_squared_length
+    def set_script(self, script):
+        exposed = self.expose()
 
-					obj_1.poke(-gravity_force)
-					obj_2.poke(gravity_force)
+        try:
+            self.script = script
+            exec (self.script, exposed, exposed)
+            error = None
+        except SyntaxError, err:
+            error_class = err.__class__.__name__
+            line_number = err.lineno
+            error = (error_class, err, line_number, None)
+        except Exception as err:
+            error_class = err.__class__.__name__
+            cl, exc, tb = sys.exc_info()
+            line_number = traceback.extract_tb(tb)[-1][1]
+            error = (error_class, err, line_number)
 
+        if error:
+            return error
 
+        for signal in self.signals.names:
+            self.signals.update(signal, exposed[signal])
 
-		# 3. Move every object:
-		map(self.move_object, self.objects)
+        self.timer.set_mode(self.mode, self.get_direction())
 
+        return None
 
-	def simulate(self):
+    def run(self):
+        self.mode = 'real_time'
+        self.timer.set_mode(self.mode, self.get_direction())
 
-		if self.timer.mode == "stop":
-			return True
+        if not self.paused:
+            sim_objects.Object.register = self.objects
+            sim_objects.Wall.register = self.walls
+            self.signals.emit('on_load')
+        self.signals.emit('on_start')
+        self.running = True
+        self.paused = False
 
-		self.timer.tick()
-		self.physics()
-		self.signals.emit("on_simulate")
+    def pause(self):
+        self.mode = 'stop'
+        self.timer.set_mode(self.mode, self.get_direction())
 
+        self.signals.emit('on_pause')
+        self.running = False
+        self.paused = True
 
-	def make_a_single_step(self, direction):
+    def end(self):
+        self.mode = 'stop'
+        self.timer.set_mode(self.mode)
 
-		if self.step_size:
-			self.timer.step_size = self.step_size
+        self.signals.emit('on_end')
+        self.running = False
+        self.paused = False
 
-		self.timer.set_mode("step_by_step", direction)
-		self.simulate()
-		self.timer.set_mode(self.mode, self.get_direction())
+        for obj in self.objects:
+            del obj
+        for obj in self.walls:
+            del obj
+        for entry in self.register:
+            del entry
 
+        # co bylo a nie jest nie liczy sie w rejestr
+        self.register = {}
+        self.objects = []
+        self.walls = []
+        self.signals.clear_all()
 
-	def step_forward(self, waste=""):
-		self.make_a_single_step("forward")
-
-
-	def step_backward(self, waste=""):
-		self.make_a_single_step("backward")
-
-	def set_script(self, script):
-
-		from random import uniform as rand
-
-		on_load = None
-		on_start = None
-		on_pause = None
-		on_end = None
-		on_simulate = None
-		on_collision = None
-
-		global let, Force, Ball, Wall, Box, rand, simulation, active_objects
-
-		let = self.let
-		Force = Vector3
-		Ball = self.create_ball
-		Wall = self.create_wall
-		Box = self.create_box
-		simulation = self
-
-		try:
-			self.script = script
-			exec self.script
-			error = None
-		except SyntaxError, err:
-			error_class = err.__class__.__name__
-			line_number = err.lineno
-			error = (error_class, err, line_number, None)
-		except Exception as err:
-			error_class = err.__class__.__name__
-			cl, exc, tb = sys.exc_info()
-			line_number = traceback.extract_tb(tb)[-1][1]
-			error = (error_class, err, line_number)
-
-		if error:
-			return error
-
-		self.signals.update("on_load", on_load)
-		self.signals.update("on_start", on_start)
-		self.signals.update("on_pause", on_pause)
-		self.signals.update("on_end", on_end)
-		self.signals.update("on_simulate", on_simulate)
-		self.signals.update("on_collision", on_collision)
-
-		self.timer.set_mode(self.mode, self.get_direction())
-
-		return None
-
-	def run(self):
-		self.mode = "real_time"
-		self.timer.set_mode(self.mode, self.get_direction())
-
-		if not self.paused:
-			self.signals.emit("on_load")
-		self.signals.emit("on_start")
-		self.running = True
-		self.paused = False
-
-	def pause(self):
-		self.mode = "stop"
-		self.timer.set_mode(self.mode, self.get_direction())
-
-		self.signals.emit("on_pause")
-		self.running = False
-		self.paused = True
-
-	def end(self):
-		self.mode = "stop"
-		self.timer.set_mode(self.mode)
-
-		self.signals.emit("on_end")
-		self.running = False
-		self.paused = False
-
-		for obj in self.objects:
-			del obj
-		for obj in self.walls:
-			del obj
-		for entry in self.register:
-			del entry
-
-		# co bylo a nie jest nie liczy sie w rejestr
-		self.register = {}
-		self.objects = []
-		self.walls = []
-		self.signals.clear_all()
-
-		# lets reload register to state as it was before run()
-		self.set_script(self.script)
-
-	class Ball(Object):
-
-		def __init__(self,  x=0, y=0, z=0, mass=1, radius=1, color=""):
-			Object.__init__(self, x, y, z, mass)
-			self.type = "ball"
-			self.radius = radius
-			if color:
-				self.color = color
-			self.scale = V(radius, radius, radius)
-
-
-	# Wall should always be perpendicular to axis.
-	# Only because it's easier to code it ;)
-	class Wall(Object):
-
-		# if not on the same side of wall
-		def _collison_x(self, center, radius):
-			return self.position.x > center.x - radius and self.position.x < center.x + radius
-
-		def _collison_y(self, center, radius):
-			return self.position.y > center.y - radius and self.position.y < center.y + radius
-
-		def _collison_z(self, center, radius):
-			return self.position.z > center.z - radius and self.position.z < center.z + radius
-
-
-		def __init__(self,  x=None, y=None, z=None, mass=1000, movable=True):
-
-			self.movable = movable
-
-			if (x is None and y is None and z is None) or (x and y) or (x and z) or (y and z):
-				raise Exception("Walls needs a single plan")
-
-			if x is not None:
-				self.collision_with_ball = self._collison_x
-			else:
-				x = 0
-
-			if y is not None:
-				self.collision_with_ball = self._collison_y
-			else:
-				y = 0
-
-			if z is not None:
-				self.collision_with_ball = self._collison_z
-			else:
-				z = 0
-
-
-			Object.__init__(self, x, y, z, mass)
-   			self.type = "wall"
+        # lets reload register to state as it was before run()
+        self.set_script(self.script)
 

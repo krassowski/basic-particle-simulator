@@ -7,9 +7,9 @@ PATH_TO_CONFIG_FILE = "config.ini"
 config = Configuration(PATH_TO_CONFIG_FILE)
 
 if config.language:
-	CURRENT_LANG = config.language
+    CURRENT_LANG = config.language
 else:
-	CURRENT_LANG = DEFAULT_LANG
+    CURRENT_LANG = DEFAULT_LANG
 
 translations = {}
 translations["PL"] = {}
@@ -130,12 +130,12 @@ translations["PL"]["Close"] = "Zamknij"
 
 def _(string):
 
-	if string in translations[CURRENT_LANG]:
-		return translations[CURRENT_LANG][string]
-	else:
-		if CURRENT_LANG != "ENG":
-			print ("Untranslated string: " + string + " in " + CURRENT_LANG)
-		return string
+    if string in translations[CURRENT_LANG]:
+        return translations[CURRENT_LANG][string]
+    else:
+        if CURRENT_LANG != "ENG":
+            print ("Untranslated string: " + string + " in " + CURRENT_LANG)
+        return string
 
 def is_english_off():
-	return (config.language != DEFAULT_LANG)
+    return (config.language != DEFAULT_LANG)

@@ -15,7 +15,7 @@ def on_load():
 		ball = Ball(x, y, z, mass, radius)
 		ball.velocity = V(x =rand(-5, 5), y=rand(-5, 5), z=rand(-5, 5))
 
-	Box(box_size + 1, 1000000)
+	WallBox(box_size + 1, 1000000)
 
 
 def on_collision():

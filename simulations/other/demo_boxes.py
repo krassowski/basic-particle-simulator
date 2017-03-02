@@ -14,7 +14,7 @@ def on_load():
 
 	# === You can simply create a box ===
 
-	Box(box_size, mass_of_the_wall)
+	WallBox(box_size, mass_of_the_wall)
 
 	# above is equivalent to:	
 
@@ -33,15 +33,15 @@ def on_load():
 
 	# === You can also set position ===
 
-	Box(3, mass_of_the_wall, position = V(20, 20, 20) )
+	WallBox(3, mass_of_the_wall, position = V(20, 20, 20) )
 
 	ball = Ball(x=20, y=20, z=20, mass=1, radius =1)
 	ball.velocity = Vector3(x=rand(-5, 5), y=rand(-5, 5), z=rand(-5, 5))
 
-	# === Box can be movable or not (like walls) ===
+	# === WallBox can be movable or not (like walls) ===
 
 	# if box is not movable, mass has no meaning
-	Box(3, 1, position = V(-20, -20, -20), movable = False)
+	WallBox(3, 1, position = V(-20, -20, -20), movable = False)
 
 	ball = Ball(x=-20, y=-20, z=-20, mass=1000000, radius = 1)
 	ball.velocity = Vector3(x=rand(-5, 5), y=rand(-5, 5), z=rand(-5, 5))

@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-
-# Allows to keep directory clean
-# (in my opinion better than adding .gitignore with ".pyc")
-import sys
-sys.dont_write_bytecode = True
-
 from internationalize import _
 from configuration import Configuration
 
@@ -19,69 +13,69 @@ PATH_TO_CONFIG_FILE = "config.ini"
 
 def main():
 
-	config = Configuration(PATH_TO_CONFIG_FILE)
+    config = Configuration(PATH_TO_CONFIG_FILE)
 
-	gtk_version = misc.get_gtk_version()
+    gtk_version = misc.get_gtk_version()
 
-	if gtk_version < 3.12:
-		title = _("You have too old version of GTK+")
-		content = _("You shall upgrade your GTK+ to version 3.12 at least. Your GTK+ version is ") + str(gtk_version)
-		content += "\n\n" + _("Some functions may not work properly with current GTK+ version.")
-		content += "\n" + _("Do you want to continue?")
+    if gtk_version < 3.12:
+        title = _("You have too old version of GTK+")
+        content = _("You shall upgrade your GTK+ to version 3.12 at least. Your GTK+ version is ") + str(gtk_version)
+        content += "\n\n" + _("Some functions may not work properly with current GTK+ version.")
+        content += "\n" + _("Do you want to continue?")
 
-		response = gui.windows.ask(content, title)
+        response = gui.windows.ask(content, title)
 
-		if response:
-			pass
-		else:
-			return False
+        if response:
+            pass
+        else:
+            return False
 
-	main_simulation = simulator.Simulation()
-	main_renderer = renderer.Renderer(main_simulation)
-	main_window = gui.windows.MainWindow(main_simulation, config)
-	main_window.view_area.set_renderer(main_renderer)
+    main_simulation = simulator.Simulation()
+    main_renderer = renderer.Renderer(main_simulation)
+    main_window = gui.windows.MainWindow(main_simulation, config)
+    main_window.view_area.set_renderer(main_renderer)
 
-	if gtk_version < 3.16:
-		main_window.show_tip(_("You have an old GTK+ version. If you want to improve an apperance of this application, please upgrade GTK+ to 3.16 version."))
+    if gtk_version < 3.16:
+        main_window.show_tip(_("You have an old GTK+ version. If you want to improve an apperance of this application, please upgrade GTK+ to 3.16 version."))
 
-	### FPS COUNTER CODE, part I:
-	# from simulator.timer import Timer
-	# fps = Timer(main_simulation, mode="real_time")
-	# main_simulation.speed = 1
-	# fps_list = [1] * 50
-	###
+    ### FPS COUNTER CODE, part I:
+    # from simulator.timer import Timer
+    # fps = Timer(main_simulation, mode="real_time")
+    # main_simulation.speed = 1
+    # fps_list = [1] * 50
+    ###
 
 
-	while main_window.is_open:
+    while main_window.is_open:
 
-		# Steps of simulation are then normalised by time
+        # Steps of simulation are then normalised by time
 
-		main_simulation.simulate()
+        main_simulation.simulate()
 
-		# Rendering is called there only, to ensure that every simulation step has
-		# impact on displayed image. It's only one of places where the rendering function
-		# is executed (see comment below)
-		main_renderer.render()
+        # Rendering is called there only, to ensure that every simulation step has
+        # impact on displayed image. It's only one of places where the rendering function
+        # is executed (see comment below)
+        main_renderer.render()
 
-		# And there is a function giving control of our resources to the GTK library.
-		# The execution of that func. will last until every waiting GUI event is handled.
-		# If there was any pending window movement or cursor movement, the GTK library will call "redraw" signal.
-		# That signal is connected to our rendering function (thanks to Window.view_area subclass)
-		main_window.main_iteration()
+        # And there is a function giving control of our resources to the GTK library.
+        # The execution of that func. will last until every waiting GUI event is handled.
+        # If there was any pending window movement or cursor movement, the GTK library will call "redraw" signal.
+        # That signal is connected to our rendering function (thanks to Window.view_area subclass)
+        main_window.main_iteration()
 
-		### FPS COUNTER CODE, part II:
-		#fps.tick()
-		#fps_list.append(fps.time_delta)
-		#fps_list.pop(0)
-		#print 1.0 / (sum(fps_list) / 50.0)
-		###
+        ### FPS COUNTER CODE, part II:
+        #fps.tick()
+        #fps_list.append(fps.time_delta)
+        #fps_list.pop(0)
+        #print 1.0 / (sum(fps_list) / 50.0)
+        ###
 
-	return True
+    return True
 
 if __name__ == '__main__':
 
-	# True means success
-	result = main()
+    # True means success
+    result = main()
 
-	# And now I want to translate it into Unix convention, so:
-	exit(not result)
+    # And now I want to translate it into Unix convention, so:
+    exit(not result)

@@ -21,7 +21,7 @@ def on_load():
 	box_size += 1	
 
 	# lower mass of wall (1000000) to see sth like pV=nRT
-	Box(box_size, 1000000)
+	WallBox(box_size, 1000000)
 
 
 #def on_collision():

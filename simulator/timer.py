@@ -1,66 +1,66 @@
 import timeit
 
-class Timer():
 
-	time_previous = 0
-	time_delta = 0
-	real_time = True
-	step_size = 1
-	mode = "stop"
+class Timer:
 
-	def __init__(self, simulation, mode="stop", direction = "forward"):
-		self.simulation = simulation
-		self.restart()
-		self.set_mode(mode, direction)
+    time_previous = 0
+    time_delta = 0
+    real_time = True
+    step_size = 1
+    mode = 'stop'
+    directions = {'forward': 1, 'backward': -1}
 
-	def restart(self):
+    def __init__(self, simulation, mode='stop', direction='forward'):
+        self.modes = {
+            'real_time': self._calculate_real_time_delta,
+            'step_by_step': self._calculate_constant_step_delta,
+            'stop': lambda: 0
+        }
+        self.direction = self.directions[direction]
+        self.simulation = simulation
+        self.restart()
+        self.set_mode(mode, direction)
+        self.previous_time_delta = None
+        self._calculate_time_delta = None
 
-		self.time_previous = timeit.default_timer()
+    def restart(self):
 
-	def tick(self):
+        self.time_previous = timeit.default_timer()
 
-		self.previous_time_delta = self.time_delta
-		self.time_delta = self._calculate_time_delta()
+    def tick(self):
 
+        self.previous_time_delta = self.time_delta
+        self.time_delta = self._calculate_time_delta()
 
-	def set_mode(self, mode="stop", direction="forward"):
-	
-		if not direction in ["forward", "backward"]:
-			raise ValueError("Unknown direction: "+ direction)
+    def set_mode(self, mode='stop', direction='forward'):
+        self.mode = mode
 
-		self.direction = {"forward": 1, "backward": -1}[direction]
-		self.mode = mode
-				
-		if mode == "real_time":
-			self._calculate_time_delta = self._calculate_real_time_delta
-					
-		elif mode == "step_by_step":
-			self._calculate_time_delta = self._calculate_constant_step_delta
-		
-		elif mode == "stop":
-			self._calculate_time_delta = lambda: 0
-			
-		else:
-			raise ValueError("Incorrect timer mode: " + mode)
-			
-		self.restart()
+        try:
+            self.direction = self.directions[direction]
+        except KeyError:
+            raise ValueError('Unknown direction: ' + direction)
+        try:
+            self._calculate_time_delta = self.modes[mode]
+        except KeyError:
+            raise ValueError('Incorrect timer mode: ' + mode)
 
-	def _calculate_real_time_delta(self):
+        self.restart()
 
-		time_delta = timeit.default_timer() - self.time_previous
+    def _calculate_real_time_delta(self):
 
-		self.time_previous += time_delta			
+        time_delta = timeit.default_timer() - self.time_previous
 
-		# Now we are scaling the time span by the *speed* factor
-		# And on the end we are putting into the equation also a direction of passed time
+        self.time_previous += time_delta
 
-		return time_delta * self.simulation.speed * self.direction
+        # Now we are scaling the time span by the *speed* factor
+        # And on the end we are putting into the equation also a direction of passed time
 
-	def _calculate_constant_step_delta(self):
+        return time_delta * self.simulation.speed * self.direction
 
-		return self.step_size * self.simulation.speed * self.direction
+    def _calculate_constant_step_delta(self):
 
+        return self.step_size * self.simulation.speed * self.direction
 
-	def _calculate_time_delta():
-		raise RuntimeWarning("_calculate_time_delta() called, but not initialized with set_mode()")
+    def _calculate_time_delta():
+        raise RuntimeWarning('_calculate_time_delta() called, but not initialized with set_mode()')
 

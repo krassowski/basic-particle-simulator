@@ -1,27 +1,33 @@
 import types
 
-class Signals():
 
-	def __init__(self):
-		self.signals = {}
+class Signals:
 
-	def clear_all(self):
-		self.signals = {}
+    names = (
+        'on_load', 'on_start', 'on_pause',
+        'on_end', 'on_simulate', 'on_collision'
+    )
 
-	def emit(self, signal):
-		if signal in self.signals:
-			self.signals[signal]()
+    def __init__(self):
+        self.signals = {}
 
-	def connect(self, signal, callback):
-		self.signals[signal] = callback
+    def clear_all(self):
+        self.signals = {}
 
-	def unconnect(self, signal):
-		if signal in self.signals:
-			del self.signals[signal]
+    def emit(self, signal):
+        if signal in self.signals:
+            self.signals[signal]()
 
-	def update(self, signal, callback):
-		if callback and isinstance(callback, types.FunctionType):
-			self.connect(signal, callback)
-		else:
-			self.unconnect(signal)
+    def connect(self, signal, callback):
+        self.signals[signal] = callback
+
+    def unconnect(self, signal):
+        if signal in self.signals:
+            del self.signals[signal]
+
+    def update(self, signal, callback):
+        if callback and isinstance(callback, types.FunctionType):
+            self.connect(signal, callback)
+        else:
+            self.unconnect(signal)
 

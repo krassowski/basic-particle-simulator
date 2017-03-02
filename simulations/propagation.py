@@ -17,7 +17,7 @@ def on_load():
 		ball.color = V(rand(0,1),rand(0,1),rand(0,1))
 		ball.velocity = V(x =rand(-50,50), y=rand(-50,50), z=rand(-50,50))
 
-	Box(box_size + 4, 1000000)
+	WallBox(box_size + 4, 1000000)
 
 
 def on_collision():

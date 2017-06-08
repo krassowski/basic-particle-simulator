@@ -4,8 +4,8 @@ gi.require_version('GtkSource', '3.0')
 from gi.repository import Gtk
 from gi.repository import GtkSource
 from gi.repository import Pango
-from highlighter import Highlighter
-import miscellaneous as misc
+from gui.highlighter import Highlighter
+import gui.miscellaneous as misc
 import re
 
 
@@ -15,7 +15,8 @@ class Console:
 
         self.option_browser = option_browser
         self.simulation = simulation
-        simulation_keywords = simulation.expose().keys()
+        #simulation_keywords = simulation.expose().keys()
+        simulation_keywords = []
         self.script = self.Script(self, simulation_keywords)
         self.controls = self.Controls(self.script, self.simulation)
 
@@ -100,23 +101,28 @@ class Console:
                     messsage = _(error_name)
                     messsage = '<span weight="bold">' + _(error_name) + ':</span>\n'
 
+                    args = exception.args
+
                     if error_name in ["IndentationError", "SyntaxError"]:
-                        #pos = exception[1][2]
-                        #wrong_line = exception[1][3]
-                        messsage += "\n" + _(exception[0])
-                        #messsage += "\n" + '<span style="italic">' + wrong_line + '</span>'
+                        pos = args[1][2]
+                        wrong_line = args[1][3]
+                        messsage += "\n" + _(args[0])
+                        messsage += "\n" + '<span style="italic">' + wrong_line + '</span>'
                     elif error_name in ["NameError"]:
-                        name = exception[0][6:][:-16]
+                        print(exception)
+                        print(exception.args)
+                        name = args[0][6:][:-16]
                         messsage += "\n" + _("name '%s' is not defined") % name
                     elif error_name in ["AttributeError"]:
-                        match = re.search("no attribute '(.*?)'", exception[0])
+                        print(exception.args)
+                        match = re.search("no attribute '(.*?)'", args[0])
                         name = match.group(1)
-                        match = re.search("'(.*?)' object", exception[0])
+                        match = re.search("'(.*?)' object", args[0])
                         obj = match.group(1)
                         messsage += "\n" + _("'%s' object has no attribute '%s'") % (obj, name)
                     else:
+                        print(exception.args)
                         messsage += "\n" + str(exception)
-                        print exception.args
 
                     self.error_bar_label.set_markup('<span foreground="black">' + messsage + '</span>')
 
@@ -128,7 +134,7 @@ class Console:
             functions = []
 
             reg_str = name + "\("
-            for i in xrange(max_args):
+            for i in range(max_args):
                 reg_str += "("
 
                 if i > 0:
@@ -151,7 +157,7 @@ class Console:
 
                 entry.append( d )
 
-                for i in xrange(max_args):
+                for i in range(max_args):
                     try:
                         arg = eval(match.group(2 + 2*i))
                     except:
@@ -259,7 +265,7 @@ class Console:
 
                 for data in data_list:
                     good_match = True
-                    for i in xrange(identities):
+                    for i in range(identities):
                         if args[i] != data[1 + i]:
                             good_match = False
                     if good_match:
@@ -417,17 +423,18 @@ class Console:
 
         def run_pause(self, button):
 
-            if not self.simulation.running and not self.simulation.paused:
+            if self.simulation.mode == 'stop':
                 self.refresh()
 
-            if self.simulation.running:
-                button.set_image(misc.get_icon_image("media-playback-start-symbolic"))
-                button.set_tooltip_text(_("Run simulation"))
-                self.simulation.pause()
-            else:
+            if self.simulation.mode != 'run':
                 button.set_image(misc.get_icon_image("media-playback-pause-symbolic"))
                 button.set_tooltip_text(_("Pause simulation"))
                 self.simulation.run()
+            else:
+                button.set_image(misc.get_icon_image("media-playback-start-symbolic"))
+                button.set_tooltip_text(_("Run simulation"))
+                self.simulation.pause()
+                
         # The optional argument's ("waste") are there to allow passing additional data from GUI calls
         # (GTK always want to give us a reference to calling object in callback - take look above) but we really
         # don't need them. If they were removed, the Python Interpreter will be mad and all off our efforts will go off

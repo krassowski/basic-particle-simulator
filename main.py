@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from internationalize import _
 from configuration import Configuration
 
-import simulator
+import sys
+sys.path.insert(0, './simulation')
+import simulations
 import renderer
 
 import gui.windows
@@ -30,9 +32,13 @@ def main():
         else:
             return False
 
-    main_simulation = simulator.Simulation()
-    main_renderer = renderer.Renderer(main_simulation)
-    main_window = gui.windows.MainWindow(main_simulation, config)
+    from simulation_manager import SimulationManager
+    
+    initial_simulation = simulations.simple_simulation()
+    simulation_manager = SimulationManager(initial_simulation)
+
+    main_renderer = renderer.Renderer(simulation_manager)
+    main_window = gui.windows.MainWindow(simulation_manager, config)
     main_window.view_area.set_renderer(main_renderer)
 
     if gtk_version < 3.16:
@@ -48,9 +54,7 @@ def main():
 
     while main_window.is_open:
 
-        # Steps of simulation are then normalised by time
-
-        main_simulation.simulate()
+        simulation_manager.simulate()
 
         # Rendering is called there only, to ensure that every simulation step has
         # impact on displayed image. It's only one of places where the rendering function

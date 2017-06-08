@@ -18,7 +18,7 @@ class Vector3(object):
             result.z = self.z * other
         else:
             #TODO
-            print "FIXME: MUL"
+            print("FIXME: MUL")
             pass
         return result
 

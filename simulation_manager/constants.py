@@ -25,7 +25,7 @@ class Constants:
 
     def load_from_file(self, file_name):
 
-        from ConfigParser import ConfigParser
+        from configparser import ConfigParser
         config = ConfigParser()
         config.read(file_name)
 

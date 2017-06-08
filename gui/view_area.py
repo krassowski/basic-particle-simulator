@@ -1,9 +1,9 @@
 from gi.repository import Gtk, Gio, Gdk
 from internationalize import _
-import camera
+import gui.camera as camera
 from vector import *
-import miscellaneous as misc
-from event_handler import EventHandler
+import gui.miscellaneous as misc
+from gui.event_handler import EventHandler
 
 
 class ViewArea:

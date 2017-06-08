@@ -8,7 +8,7 @@ def load_gui(destination, misc, callback):
 		script_name = script
 		with open("simulations/" + script, "r") as script_file:
 			regexp = re.compile("name[:=]\s*(.+)")
-			for i in xrange(3):
+			for i in range(3):
 				line = script_file.readline()
 				match = regexp.search(line)
 				if match:

@@ -1,7 +1,5 @@
 # [SNIPPET_AUTHOR: Oliver Marks ]
 # [SNIPPET_LICENSE: GPL]
-
-
 import sys
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -24,7 +22,7 @@ class GtkGl:
     xlib = cdll.LoadLibrary('libX11.so')
     xlib.XOpenDisplay.argtypes = [c_char_p]
     xlib.XOpenDisplay.restype = POINTER(struct__XDisplay)
-    xdisplay = xlib.XOpenDisplay("")
+    xdisplay = xlib.XOpenDisplay(b'')
     display = Xlib.display.Display()
     attrs = []
 
@@ -71,7 +69,7 @@ class GtkGl:
         """  """
         self.xwindow_id = GdkX11.X11Window.get_xid(wid)
         if not GLX.glXMakeCurrent(self.xdisplay, self.xwindow_id, self.context):
-            print 'failed'
+            print('failed')
         glViewport(0, 0, self.width, self.height)
 
         glEnable(GL_DEPTH_TEST)
@@ -100,7 +98,7 @@ class GtkGl:
     def draw_start(self):
         """make cairo context current for drawing"""
         if not GLX.glXMakeCurrent(self.xdisplay, self.xwindow_id, self.context):
-            print "failed"
+            print("failed")
 
     def draw_finish(self):
         """swap buffer when we have finished drawing"""

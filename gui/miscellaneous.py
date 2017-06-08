@@ -270,7 +270,7 @@ def file_get_contents(path):
         with open(path, "r") as f:
             return f.read()
     else:
-        print "no file: ", path
+        print("no file: ", path)
         return ""
 
 

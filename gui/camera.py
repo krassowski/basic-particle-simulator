@@ -3,7 +3,7 @@ from internationalize import _
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from vector import *
-import gtkgl
+import gui.gtkgl as gtkgl
 import random
 import copy
 import math

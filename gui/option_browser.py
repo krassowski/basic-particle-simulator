@@ -2,8 +2,7 @@ from gi.repository import Gtk
 from gi.repository import Gio
 from gi.repository import Gdk
 from internationalize import _, is_english_off
-import miscellaneous as misc
-import windows
+import gui.miscellaneous as misc
 
 
 class OptionBrowser:
@@ -14,6 +13,7 @@ class OptionBrowser:
 
         self.window = window
 
+        # widget id -> handler
         self.actions = {
             "fullscreen": window.toggle_full_screen,
             "hide_options": window.toggle_option_browser,
@@ -23,7 +23,8 @@ class OptionBrowser:
             "show_tips": window.toggle_tips,
             "prompt_on_exit": window.toggle_prompt,
             "do_not_use_header_bar": window.toggle_header_bar,
-            "polish_version": window.toggle_polish_version
+            "polish_version": window.toggle_polish_version,
+            "plot_energies": window.simulation.plot_energies
         }
 
         self.let_actions = [
@@ -56,7 +57,7 @@ class OptionBrowser:
         self.gui.set_size_request(200, 400)
 
     def back(self, to_where):
-        self._path = self._path[:self._path.index(to_where)+1]
+        self._path = self._path[:self._path.index(to_where) + 1]
         self.browser.update()
 
     def go(self, where):
@@ -69,18 +70,21 @@ class OptionBrowser:
         return self._path
 
     def load_from_file(self):
+        import gui.windows as windows
         path = windows.file_chooser("open", self.window, "simulations")
         if path:
             self.window.console.controls.end()
             self.window.console.script.load_simulation(path)
 
     def save_as(self):
+        import gui.windows as windows
         path = windows.file_chooser("save", self.window, "simulations")
         if path:
             self.window.console.script.save_simulation(path)
             self.browser.update()
 
     def save(self):
+        import gui.windows as windows
         question = _("Do you really want to overwrite existing file?")
         title = _("Overwrite existing file?")
         overwrite = windows.ask(question, title, self.window)
@@ -116,7 +120,7 @@ class OptionBrowser:
     def get_inverse_mask(self, name):
         mask = self.get_mask(name)
         if mask:
-            return {value: key for key, value in mask.iteritems()}
+            return {value: key for key, value in mask.items()}
         else:
             return None
 
@@ -253,7 +257,7 @@ class OptionBrowser:
             self.gui = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
             self.load_options()
 
-        # We need go deeper...
+        # We need to go deeper...
         def go_deeper(self, level):
             self.option_browser.go(level)
             misc.filicide(self.gui)

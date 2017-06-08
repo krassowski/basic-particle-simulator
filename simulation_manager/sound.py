@@ -9,8 +9,8 @@ try:
     sound_available = True
 except ImportError:
     sound_available = False
-    print 'No Gst package in repository - the sound will not work.'
-    print 'Upgrade your GTK+ to have all features.'
+    print('No Gst package in repository - the sound will not work.')
+    print('Upgrade your GTK+ to have all features.')
 
 
 class Sound:

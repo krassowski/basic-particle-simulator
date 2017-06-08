@@ -16,7 +16,10 @@ class Signals:
 
     def emit(self, signal):
         if signal in self.signals:
-            self.signals[signal]()
+            try:
+                self.signals[signal]()
+            except Exception as e:
+                print(e)
 
     def connect(self, signal, callback):
         self.signals[signal] = callback

@@ -3,11 +3,11 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import Gdk
 from internationalize import _
-from option_browser import OptionBrowser
-from view_area import ViewArea
-from console import Console
-from event_handler import EventHandler
-import miscellaneous as misc
+from gui.option_browser import OptionBrowser
+from gui.view_area import ViewArea
+from gui.console import Console
+from gui.event_handler import EventHandler
+import gui.miscellaneous as misc
 
 
 class MainWindow(Gtk.Window):
@@ -273,7 +273,7 @@ class MainWindow(Gtk.Window):
         self.view_area = ViewArea(self.default_view, self.event_handler)
 
         # Title and header bar
-        title = _('Basic Particle Simulator')
+        title = _('Molecular Modelling II')
         self.set_title(title)
         self.set_wmclass(title, title)
 

@@ -1,7 +1,9 @@
+import numpy as np
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 from OpenGL.GLUT.freeglut import *
+from vector import Vector3
 
 
 class Color:
@@ -24,7 +26,19 @@ colors = {
     for name, (r, g, b) in color_map.items()
 }
 
-from vector import Vector3
+
+class ObjectType:
+    pass
+
+
+class Ball(ObjectType):
+
+    sphere_quality = 10
+
+    @classmethod
+    def draw(self):
+        glutSolidSphere(1, self.sphere_quality, self.sphere_quality)
+
 
 class AtomRepresentation:
 
@@ -33,7 +47,7 @@ class AtomRepresentation:
     default_color = Color(1, 0, 0)
 
     element_colors = {
-        'H': colors['red'], # TODO
+        'H': colors['blue'], # TODO
         'Au': colors['yellow'],
     }
 
@@ -43,9 +57,7 @@ class AtomRepresentation:
         self.color = self._determine_color()
         self.radius = self.atom.radius()
 
-    @property
-    def type(self):
-        return 'ball'
+    type = Ball
 
     def _determine_color(self):
         return self.element_colors.get(self.name, self.default_color)
@@ -67,12 +79,72 @@ class AtomRepresentation:
         return Vector3(self.radius, self.radius, self.radius)
 
 
-class Renderer:
+def perpendicular_vectors(v):
+    if v.y:
+        r = np.array([0.5, 0.0, 0.0])
+    else:
+        r = np.array([0.0, 0.5, 0.0])
+    x = r
+    k = np.array(v.to_list())
+    x -= k * x.dot(k)
+    x /= np.linalg.norm(x)
+    y = np.cross(k, x)
+    return Vector3.from_tuple(x), Vector3.from_tuple(y)
 
-    sphere_quality = 16
+
+class Wall:
+    def __init__(self, normal, distance, quality=10, size=None):
+        self.lines = []
+        if not size:
+            size = abs(distance) * 2
+        else:
+            size = min(size, (abs(distance) * 2))
+
+        quantity = quality
+        if quantity % 2 == 1:
+            quantity += 1
+        spacing = size / quantity
+
+        v = normal
+        o1, o2 = perpendicular_vectors(v)
+        o1 = o1
+        o2 = o2
+        d = distance
+        v *= (-d)
+
+        s = size / 2
+
+        line_one = [v + o1 * s, v - o1 * s]
+        line_two = [v + o2 * s, v - o2 * s]
+
+        self.corners = [
+            line_one[0] - o2 * s,
+            line_one[0] - o2 * s,
+            line_two[0] - o1 * s,
+            line_two[0] + o1 * s,
+        ]
+        self.vertex = []
+        for corner in self.corners:
+            self.vertex.extend(corner.to_list())
+
+        for i in range(-quantity // 2, quantity // 2 + 1):
+            s = i * spacing
+
+            s0 = line_one[0] + (o2 * s)
+            e0 = line_one[1] + (o2 * s)
+            self.lines.append((s0, e0))
+
+            s1 = line_two[0] + (o1 * s)
+            e1 = line_two[1] + (o1 * s)
+            self.lines.append((s1, e1))
+
+
+class Renderer:
 
     def __init__(self, manager):
         self.manager = manager
+        self._fields = None
+        self.walls = []
         glutInit()
         self.on_configure()
     
@@ -80,19 +152,56 @@ class Renderer:
     def atoms(self):
         return self.manager.atoms
 
+    def recompute_fields(self, fields):
+        self._fields = fields
+        self.walls = []
+        for field in fields:
+            if 'type' in field and field['type'] == 'wall':
+                normal = Vector3(field['x'], field['y'], field['z'])
+                wall = Wall(normal, field['distance'])
+                self.walls.append(wall)
+
     def render(self):
 
         glClearColor(0.0, 0.0, 0.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        if self.manager.grid:
-            self.draw_grid()
+        glDisable(GL_COLOR_MATERIAL)
+        glDisable(GL_LIGHTING)
 
         if self.manager.axis:
             self.draw_axis()
 
+        glEnable(GL_COLOR_MATERIAL)
+        glEnable(GL_LIGHTING)
+
+        if self.manager.grid:
+            self.draw_grid()
+
+        if self.manager.force_fields:
+            if self.manager.force_fields != self._fields:
+                self.recompute_fields(self.manager.force_fields)
+            self.draw_fields()
+
         for atom in self.atoms:
             self.draw(atom)
+
+    def draw_fields(self):
+        for wall in self.walls:
+            self.draw_wall(wall)
+
+    def draw_wall(self, wall):
+        glLineWidth(3)
+
+        glColor3f(0.35, 0.85, 0.35)
+
+        for start, end in wall.lines:
+            glBegin(GL_LINES)
+
+            glVertex3f(start.x, start.y, start.z)
+            glVertex3f(end.x, end.y, end.z)
+
+            glEnd()
 
     def draw_grid(self):
 
@@ -108,8 +217,6 @@ class Renderer:
 
         half_of_length = spacing * quantity // 2
 
-        glDisable(GL_COLOR_MATERIAL)
-        glDisable(GL_LIGHTING)
 
         glColor3f(0.85, 0.85, 0.85)
 
@@ -144,8 +251,6 @@ class Renderer:
             glVertex3f(0, +half_of_length, i * spacing)
             glEnd()
 
-        glEnable(GL_COLOR_MATERIAL)
-        glEnable(GL_LIGHTING)
 
         #glEndList()
         #######
@@ -166,9 +271,6 @@ class Renderer:
         glLineWidth(2)
 
         axis_length = 20
-
-        glDisable(GL_COLOR_MATERIAL)
-        glDisable(GL_LIGHTING)
 
         # x axis (red)
         glBegin(GL_LINES)
@@ -191,9 +293,6 @@ class Renderer:
         glVertex3f(0, 0, axis_length)
         glEnd()
 
-        glEnable(GL_COLOR_MATERIAL)
-        glEnable(GL_LIGHTING)
-
         #glEndList()
         #######
 
@@ -214,13 +313,7 @@ class Renderer:
         # glRotatef(rotation.z, 0.0, 0.0, 0.1)
         glScalef(obj.scale.x, obj.scale.y, obj.scale.z)
 
-        #obj.shape.draw()
-
-        if obj.type == "ball":
-            self.draw_sphere()
-
-        elif obj.type == "box":
-            self.draw_box()
+        obj.type.draw()
 
         glPopMatrix()
 
@@ -229,19 +322,19 @@ class Renderer:
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE)
         
         glEnable(GL_MULTISAMPLE)
-        glutSetOption(GLUT_MULTISAMPLE, 8)
+        glutSetOption(GLUT_MULTISAMPLE, 16)
         #glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST)
         
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_BLEND)
 
-        glEnable(GL_POINT_SMOOTH);
-        #glHint(GL_POINT_SMOOTH_HINT, GL_LINEAR);
+        glEnable(GL_POINT_SMOOTH)
+        #glHint(GL_POINT_SMOOTH_HINT, GL_LINEAR)
 
-        glEnable(GL_LINE_SMOOTH);
-        #glHint(GL_LINE_SMOOTH_HINT, GL_LINEAR);
+        glEnable(GL_LINE_SMOOTH)
+        #glHint(GL_LINE_SMOOTH_HINT, GL_LINEAR)
 
-        glEnable(GL_POLYGON_SMOOTH);
+        glEnable(GL_POLYGON_SMOOTH)
         #glHint(GL_POLYGON_SMOOTH_HINT, GL_LINEAR);
 
         light_ambient  = [0.0, 0.0, 0.0, 1.0]
@@ -274,113 +367,3 @@ class Renderer:
         glMaterialfv(GL_FRONT, GL_DIFFUSE,   mat_diffuse)
         glMaterialfv(GL_FRONT, GL_SPECULAR,  mat_specular)
         glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess)
-        
-
-
-    def draw_sphere(self):
-        #glutWireSphere(1, 16, 16)
-        #print(self.sphere_quality, self.sphere_quality)
-        #self.draw_box()
-        #glutSolidSphere(1, self.sphere_quality, self.sphere_quality)
-        glutWireSphere(1, self.sphere_quality, self.sphere_quality)
-        #glutSolidCylinder(1, 1, 4, 4)
-        #
-        
-  
-        """
-        #define X .525731112119133606 
-        #define Z .850650808352039932
-
-        static GLfloat vdata[12][3] = {    
-        {-X, 0.0, Z}, {X, 0.0, Z}, {-X, 0.0, -Z}, {X, 0.0, -Z},    
-        {0.0, Z, X}, {0.0, Z, -X}, {0.0, -Z, X}, {0.0, -Z, -X},    
-        {Z, X, 0.0}, {-Z, X, 0.0}, {Z, -X, 0.0}, {-Z, -X, 0.0} 
-        };
-        
-        tindices[20][3] = { 
-            {0,4,1}, {0,9,4}, {9,5,4}, {4,5,8}, {4,8,1},    
-            {8,10,1}, {8,3,10}, {5,3,8}, {5,2,3}, {2,7,3},    
-            {7,10,3}, {7,6,10}, {7,11,6}, {11,0,6}, {0,1,6}, 
-            {6,1,10}, {9,0,11}, {9,11,2}, {9,2,5}, {7,2,11}
-            }
-
-
-        for i in range(20):
-            subdivide(
-                &vdata[tindices[i][0]][0],       
-                &vdata[tindices[i][1]][0],       
-                &vdata[tindices[i][2]][0]
-            )
-        """
-        
-    def drawtriangle(v1, v2, v3):
-        glBegin(GL_TRIANGLES)
-        glNormal3fv(v1)
-        vlVertex3fv(v1)
-        
-        glNormal3fv(v2)
-        vlVertex3fv(v2)    
-        
-        glNormal3fv(v3)
-        vlVertex3fv(v3)    
-        glEnd()
-
-    def subdivide(v1, v2, v3):
-        v12 = []
-        v23 = []
-        v31 = []
-
-        for i in range(3):
-            v12.append(v1[i] + v2[i]) 
-            v23.append(v2[i] + v3[i])
-            v31.append(v3[i] + v1[i])  
-            
-        normalize(v12)
-        normalize(v23) 
-        normalize(v31) 
-        drawtriangle(v1, v12, v31)
-        drawtriangle(v2, v23, v12)    
-        drawtriangle(v3, v31, v23)    
-        drawtriangle(v12, v23, v31) 
-
-   
-    @staticmethod
-    def draw_box():
-        glBegin(GL_QUADS)            # Start Drawing The Cube
-
-        glColor3f(0.0,1.0,0.0)            # Set The Color To Blue
-        glVertex3f( 1.0, 1.0,-1.0)        # Top Right Of The Quad (Top)
-        glVertex3f(-1.0, 1.0,-1.0)        # Top Left Of The Quad (Top)
-        glVertex3f(-1.0, 1.0, 1.0)        # Bottom Left Of The Quad (Top)
-        glVertex3f( 1.0, 1.0, 1.0)        # Bottom Right Of The Quad (Top)
-
-        glColor3f(1.0,0.5,0.0)            # Set The Color To Orange
-        glVertex3f( 1.0,-1.0, 1.0)        # Top Right Of The Quad (Bottom)
-        glVertex3f(-1.0,-1.0, 1.0)        # Top Left Of The Quad (Bottom)
-        glVertex3f(-1.0,-1.0,-1.0)        # Bottom Left Of The Quad (Bottom)
-        glVertex3f( 1.0,-1.0,-1.0)        # Bottom Right Of The Quad (Bottom)
-
-        glColor3f(1.0,0.0,0.0)            # Set The Color To Red
-        glVertex3f( 1.0, 1.0, 1.0)        # Top Right Of The Quad (Front)
-        glVertex3f(-1.0, 1.0, 1.0)        # Top Left Of The Quad (Front)
-        glVertex3f(-1.0,-1.0, 1.0)        # Bottom Left Of The Quad (Front)
-        glVertex3f( 1.0,-1.0, 1.0)        # Bottom Right Of The Quad (Front)
-
-        glColor3f(1.0,1.0,0.0)            # Set The Color To Yellow
-        glVertex3f( 1.0,-1.0,-1.0)        # Bottom Left Of The Quad (Back)
-        glVertex3f(-1.0,-1.0,-1.0)        # Bottom Right Of The Quad (Back)
-        glVertex3f(-1.0, 1.0,-1.0)        # Top Right Of The Quad (Back)
-        glVertex3f( 1.0, 1.0,-1.0)        # Top Left Of The Quad (Back)
-
-        glColor3f(0.0,0.0,1.0)            # Set The Color To Blue
-        glVertex3f(-1.0, 1.0, 1.0)        # Top Right Of The Quad (Left)
-        glVertex3f(-1.0, 1.0,-1.0)        # Top Left Of The Quad (Left)
-        glVertex3f(-1.0,-1.0,-1.0)        # Bottom Left Of The Quad (Left)
-        glVertex3f(-1.0,-1.0, 1.0)        # Bottom Right Of The Quad (Left)
-
-        glColor3f(1.0,0.0,1.0)            # Set The Color To Violet
-        glVertex3f( 1.0, 1.0,-1.0)        # Top Right Of The Quad (Right)
-        glVertex3f( 1.0, 1.0, 1.0)        # Top Left Of The Quad (Right)
-        glVertex3f( 1.0,-1.0, 1.0)        # Bottom Left Of The Quad (Right)
-        glVertex3f( 1.0,-1.0,-1.0)        # Bottom Right Of The Quad (Right)
-        glEnd()                # Done Drawing The Quad

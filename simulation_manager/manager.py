@@ -7,6 +7,7 @@ from simulation_manager.constants import Constants
 from simulation_manager.signals import Signals
 from simulation_manager.timer import Timer
 from simulation_manager.sound import Sound
+import json
 
 
 const = Constants('simulator/constants.ini')
@@ -49,6 +50,12 @@ class SimulationManager:
         self.atoms = [
             AtomRepresentation(atom)
             for atom in self.simulation.system.atoms
+        ]
+
+        self.force_fields = [
+            json.loads(force_field.get_representation())
+            for force_field in self.simulation.force_fields
+            if force_field.get_representation() != '{}'
         ]
 
     def __getattr__(self, attribute):

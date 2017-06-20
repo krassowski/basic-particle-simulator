@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import threading
+
+from gi.repository import Gtk, Gdk, GLib, GObject
 from internationalize import _
 from configuration import Configuration
 
@@ -38,41 +41,50 @@ def main():
     simulation_manager = SimulationManager(initial_simulation)
 
     main_renderer = renderer.Renderer(simulation_manager)
-    main_window = gui.windows.MainWindow(simulation_manager, config)
-    main_window.view_area.set_renderer(main_renderer)
 
-    if gtk_version < 3.16:
-        main_window.show_tip(_("You have an old GTK+ version. If you want to improve an apperance of this application, please upgrade GTK+ to 3.16 version."))
+    class WindowThread(threading.Thread):
+        def __init__(self, event, simulation_manager, main_renderer, sync):
+            threading.Thread.__init__(self)
+            self.stopped = event
+            self.simulation_manager = simulation_manager
+            self.sync = sync
+            self.main_renderer = main_renderer
+            self.main_window = gui.windows.MainWindow(simulation_manager, config)
+            self.main_window.view_area.set_renderer(main_renderer)
+            if gtk_version < 3.16:
+                self.main_window.show_tip(_("You have an old GTK+ version. If you want to improve an apperance of this application, please upgrade GTK+ to 3.16 version."))
 
-    ### FPS COUNTER CODE, part I:
-    # from simulator.timer import Timer
-    # fps = Timer(main_simulation, mode="real_time")
-    # main_simulation.speed = 1
-    # fps_list = [1] * 50
-    ###
 
+        def run(self):
+            while self.main_window.is_open:
+                self.main_window.main_iteration()
+            self.sync.set()
+            return
 
-    while main_window.is_open:
+    class SimulatorThread(threading.Thread):
+        def __init__(self, event, simulation_manager, sync):
+            threading.Thread.__init__(self)
+            self.stopped = event
+            self.simulation_manager = simulation_manager
+            self.sync = sync
+            self.fps = 30
 
-        simulation_manager.simulate()
+        def run(self):
+            while not self.stopped.wait(1 / self.fps) and not self.sync.wait(0):
+                self.simulation_manager.simulate()
 
-        # Rendering is called there only, to ensure that every simulation step has
-        # impact on displayed image. It's only one of places where the rendering function
-        # is executed (see comment below)
-        main_renderer.render()
+    s = threading.Event()
 
-        # And there is a function giving control of our resources to the GTK library.
-        # The execution of that func. will last until every waiting GUI event is handled.
-        # If there was any pending window movement or cursor movement, the GTK library will call "redraw" signal.
-        # That signal is connected to our rendering function (thanks to Window.view_area subclass)
-        main_window.main_iteration()
+    stop = threading.Event()
+    main_thread = WindowThread(stop, simulation_manager, main_renderer, s)
+    main_thread.start()
 
-        ### FPS COUNTER CODE, part II:
-        #fps.tick()
-        #fps_list.append(fps.time_delta)
-        #fps_list.pop(0)
-        #print 1.0 / (sum(fps_list) / 50.0)
-        ###
+    stop = threading.Event()
+    thread = SimulatorThread(stop, simulation_manager, s)
+    thread.start()
+
+    main_thread.join()
+    thread.join()
 
     return True
 

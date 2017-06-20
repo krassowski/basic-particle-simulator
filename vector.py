@@ -3,12 +3,16 @@ from math import sqrt
 
 class Vector3(object):
 
-    __slots__ = ('x', 'y', 'z')
+    #__slots__ = ('x', 'y', 'z')
 
     def __init__(self, x=0, y=0, z=0):
         self.x = x
         self.y = y
         self.z = z
+
+    def __matmul__(self, other):
+        #TODO
+        print("FIXME: MUL")
 
     def __mul__(self, other):
         result = Vector3()
@@ -17,12 +21,13 @@ class Vector3(object):
             result.y = self.y * other
             result.z = self.z * other
         else:
-            #TODO
-            print("FIXME: MUL")
-            pass
+            # element-wise
+            result.x *= other.x
+            result.y *= other.y
+            result.z *= other.z
         return result
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         result = Vector3()
         if other == 0:
             return result
@@ -33,25 +38,25 @@ class Vector3(object):
 
     def __add__(self, other):
         result = Vector3()
-        # Why not: (?)
-        # if type(other) in [int, float]:
-        #    result.x = self.x + other
-        #    result.y = self.y + other
-        #    result.z = self.z + other
-        # else:
-        #    result.x = self.x + other.x
-        #    result.y = self.y + other.y
-        #    result.z = self.z + other.z
-        # because of speed.
-        result.x = self.x + other.x
-        result.y = self.y + other.y
-        result.z = self.z + other.z
+        if type(other) in [int, float]:
+           result.x = self.x + other
+           result.y = self.y + other
+           result.z = self.z + other
+        else:
+           result.x = self.x + other.x
+           result.y = self.y + other.y
+           result.z = self.z + other.z
         return result
 
     def __iadd__(self, other):
-        self.x += other.x
-        self.y += other.y
-        self.z += other.z
+        if type(other) in [int, float]:
+            self.x += other
+            self.y += other
+            self.z += other
+        else:
+            self.x += other.x
+            self.y += other.y
+            self.z += other.z
         return self
 
     def __rmul__(self, other):
@@ -91,12 +96,13 @@ class Vector3(object):
 
     @classmethod
     def from_tuple(cls, some_tuple):
-        cls.x = some_tuple[0]
-        cls.y = some_tuple[1]
-        cls.z = some_tuple[2]
+        return cls(some_tuple[0], some_tuple[1], some_tuple[2])
 
     def to_dict(self):
         return {'x': self.x, 'y': self.y, 'z': self.z}
+
+    def to_list(self):
+        return [self.x, self.y, self.z]
 
     def __str__(self):
         return "x:\t%s, y:\t%s, z:\t%s" % (self.x, self.y, self.z)

@@ -1,21 +1,27 @@
 # Welcome! Have a look at a basic simulation script:
-# name=Point in wall
+# name=Head-on collision
 let("step_size", 0.25)
-let("speed", 350)
+let('speed', 60.0)
 let('axis', True)
 let('grid', False)
 
 
 def on_load():
-	a = atoms.Gold([0, 0, 0], [0, 0, 1])
-	time_step = 0.001
-	#integrator = integrators.EulerIntegrator(time_step)
-	integrator = integrators.VerletIntegrator(time_step)
+	my_atoms = [
+		atoms.Gold([-5, 0, 0], [1, 0, 0]),
+		atoms.Gold([+10, 0, 0], [-1, 0.1, 0]),
+		atoms.Gold([-5, 0, 5], [1, 0, 0]),
+		atoms.Gold([+5, 0, 5], [-1, 0, 0]),
+		#atoms.Gold([-5, 0, 5], [1, 0, 0]),
+		#atoms.Gold([+5, 0, 5], [-1, 0, 0])
+	]
+	time_step = 0.01
+	integrator = integrators.EulerIntegrator(time_step)
+	#integrator = integrators.VerletIntegrator(time_step)
 	system = System('Moj system')
-	system.atoms = [a]
+	system.atoms = my_atoms
 	simulation = Simulation('Moja symulacja', system, integrator)
 	fields = [
-		force_fields.SoftWall([0, 0, 1], [0, 0, 5], 2, 200),
 		force_fields.VanDerWaals(system)
 	]
 	simulation.force_fields = fields

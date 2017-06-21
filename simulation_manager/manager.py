@@ -48,18 +48,21 @@ class SimulationManager:
         self.set_simulation(initial_simulation)
  
     def set_simulation(self, simulation):
-        self.simulation = simulation
-        from renderer import AtomRepresentation
-        self.atoms = [
-            AtomRepresentation(atom)
-            for atom in self.simulation.system.atoms
-        ]
+        try:
+            self.simulation = simulation
+            from renderer import AtomRepresentation
+            self.atoms = [
+                AtomRepresentation(atom)
+                for atom in self.simulation.system.atoms
+            ]
 
-        self.force_fields = [
-            json.loads(force_field.get_representation())
-            for force_field in self.simulation.force_fields
-            if force_field.get_representation() != '{}'
-        ]
+            self.force_fields = [
+                json.loads(force_field.get_representation())
+                for force_field in self.simulation.force_fields
+                if force_field.get_representation() != '{}'
+            ]
+        except Exception as e:
+            raise SimulationException(e)
 
     def __getattr__(self, attribute):
         try:
@@ -166,18 +169,24 @@ class SimulationManager:
 
     def run(self):
         if self.mode != 'pause':
-            self.signals.emit('on_load')
-            
+            try:
+                self.signals.emit('on_load')
+            except Exception as e:
+                raise SimulationException(e)
+
         self.mode = 'run'
 
         self.simulation.running = True
-        self.signals.emit('on_start')
+        try:
+            self.signals.emit('on_start')
+        except Exception as e:
+            raise SimulationException(e)
 
     def plot_energies(self):
         energies = self.simulation.history.energies
         
         import matplotlib.pyplot as plt
-        
+
         for energy_name, values in energies.items():
             plt.plot(
                 self.simulation.history.timesteps,

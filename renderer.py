@@ -42,12 +42,12 @@ class Ball(ObjectType):
 
 class AtomRepresentation:
 
-    __slots__ = 'atom name color radius'.split(' ')
+    __slots__ = 'atom name color radius scale'.split(' ')
 
     default_color = Color(1, 0, 0)
 
     element_colors = {
-        'H': colors['blue'], # TODO
+        'H': colors['blue'],   # TODO
         'Au': colors['yellow'],
     }
 
@@ -56,6 +56,7 @@ class AtomRepresentation:
         self.name = self.atom.name()
         self.color = self._determine_color()
         self.radius = self.atom.radius()
+        self.scale = Vector3(self.radius, self.radius, self.radius)
 
     type = Ball
 
@@ -73,10 +74,6 @@ class AtomRepresentation:
     @property
     def z(self):
         return self.atom.position[2]
-
-    @property
-    def scale(self):
-        return Vector3(self.radius, self.radius, self.radius)
 
 
 def perpendicular_vectors(v):
@@ -168,12 +165,21 @@ class Renderer:
 
         glDisable(GL_COLOR_MATERIAL)
         glDisable(GL_LIGHTING)
+        glDisable(GL_FOG)
 
         if self.manager.axis:
             self.draw_axis()
 
         glEnable(GL_COLOR_MATERIAL)
         glEnable(GL_LIGHTING)
+        """
+        if self.manager.fog:
+            glFogi(GL_FOG_MODE, GL_EXP)
+            glFogfv(GL_FOG_COLOR, [0.5, 0.5f, 0.5, 1.0])
+            glFogf(GL_FOG_DENSITY, 0.35)
+            glFogf(GL_FOG_END, 5.0)
+            glEnable(GL_FOG)
+        """
 
         if self.manager.grid:
             self.draw_grid()

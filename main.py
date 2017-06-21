@@ -71,14 +71,18 @@ def main():
             threading.Thread.__init__(self)
             self.stopped = event
             self.simulation_manager = simulation_manager
-            self.fps = 30
+            #self.fps = 30
             self.interface = sync
+
+        @property
+        def fps(self):
+            # prevent ZeroDivisionError
+            return self.simulation_manager.speed or 1
 
         def run(self):
             done = self.interface.done.wait
             timer = self.stopped.wait
-            speed = 1 / self.fps
-            while not timer(speed) and not done(0):
+            while not timer(1 / self.fps) and not done(0):
                 try:
                     self.simulation_manager.simulate()
                 except SimulationException as e:

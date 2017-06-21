@@ -29,7 +29,8 @@ class OptionBrowser:
 
         self.let_actions = [
                 "step_size", "speed", "grid", "axis",
-                "direction", "gravity", "earth_gravity"
+                "direction", "gravity", "earth_gravity",
+                "fog"
             ]
 
         self.masks = {

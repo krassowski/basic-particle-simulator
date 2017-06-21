@@ -1,10 +1,7 @@
 # Welcome! Have a look at a basic simulation script:
 # name=Welcome!
-let('gravity', False)
-let('earth_gravity', False)
 let("step_size", 0.25)
 let("speed", 2)
-let("direction", "forward")# or backward
 let('axis', True)
 let('grid', False)
 
@@ -21,22 +18,20 @@ def simulation_box(size=15):
 	]
 	return walls
 
-atom = None
 
 def on_load():
-	global atom
-	a = atoms.Gold([0, 0, 3], [0, 0, 0.5])
-	b = atoms.Gold()
-	integrator = integrators.EulerIntegrator(1)
+	#integrator = integrators.EulerIntegrator(1)
+	integrator = integrators.VerletIntegrator(0.1)
 	system = System('Moj system')
-	system_atoms = [Atom([rand(-50, 50), rand(-50, 50), rand(-50, 50)]) for _ in range(150)]
+	system_atoms = [atoms.Gold([rand(-50, 50), rand(-50, 50), rand(-50, 50)]) for _ in range(350)]
 	system.atoms = system_atoms
 	simulation = Simulation('Moja symulacja', system, integrator)
 	fields = []
-
-	fields.extend(simulation_box(100))
+	fields.extend(simulation_box(102))
 	fields.append(force_fields.VanDerWaals(system))
 	simulation.force_fields = fields
+	if type(integrator) is integrators.VerletIntegrator:
+		integrator.fill_in_initial_conditions(system, fields)
 	set_simulation(simulation)
 	let('all', locals())
 

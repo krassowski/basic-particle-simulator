@@ -27,6 +27,9 @@ def module_members(module):
     })
 
 
+class SimulationException(Exception):
+    pass
+
 
 class SimulationManager:
 
@@ -77,11 +80,19 @@ class SimulationManager:
         self.register[variable] = value
 
     def simulate(self):
+        from integrator import IntegratorException
 
         if self.mode != 'run':
             return True
 
-        self.simulation.tick()
+        try:
+            self.simulation.tick()
+        except IntegratorException as e:
+            self.end()
+            raise SimulationException(e)
+        except Exception as e:
+            self.end()
+            raise SimulationException(e)
         #self.signals.emit('on_simulate')
 
     def make_a_single_step(self, direction):
@@ -168,8 +179,6 @@ class SimulationManager:
         import matplotlib.pyplot as plt
         
         for energy_name, values in energies.items():
-            print(len(self.simulation.history.timesteps), self.simulation.history.timesteps)
-            print(len(values), values)
             plt.plot(
                 self.simulation.history.timesteps,
                 values,
